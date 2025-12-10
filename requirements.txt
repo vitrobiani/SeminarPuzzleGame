@@ -1,0 +1,35 @@
+# Sliding Puzzle Game System - Requirements
+# Python Version: 3.10.x or higher
+#
+# Standard Library Only - No External Dependencies!
+# 
+# The following modules are used (all part of Python standard library):
+# - tkinter (GUI)
+# - socket (networking)
+# - threading (concurrent execution)
+# - pickle (serialization)
+# - heapq (priority queue for A*)
+# - time (timing)
+# - datetime (timestamps)
+# - random (puzzle generation)
+# - json (statistics persistence)
+# - subprocess (client launching)
+# - os (file operations)
+# - sys (system operations)
+# - typing (type hints)
+# - copy (deep copying)
+#
+# Installation: No pip install required!
+# Just make sure you have Python 3.10.x or higher installed.
+#
+# To verify your Python version:
+# python --version
+#
+# or
+# python3 --version
+#
+# Tkinter is usually included with Python, but if not:
+# - On Ubuntu/Debian: sudo apt-get install python3-tk
+# - On Fedora: sudo dnf install python3-tkinter
+# - On macOS: Included with Python from python.org
+# - On Windows: Included with Python installer
