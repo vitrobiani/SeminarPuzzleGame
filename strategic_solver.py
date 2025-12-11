@@ -13,6 +13,7 @@ Trade-off:
 
 import heapq
 import time
+from enum import Enum
 from typing import List, Tuple, Optional
 from copy import deepcopy
 
@@ -53,15 +54,25 @@ def manhattan_distance(board, size):
     return distance
 
 
+class Solvers(Enum):
+    BFS = "BFS"
+    AStar = "AStar"
+
+
 class StrategicSolver:
     """Greedy Best-First Search solver (fast but non-optimal)."""
 
-    def __init__(self, size, max_time=120.0):
+    def __init__(self, size, max_time=120.0, solver_name=Solvers.BFS):
         self.size = size
         self.max_time = max_time
         self.nodes_expanded = 0
+        self.solver = solver_name
 
     def solve(self, initial_board, initial_empty_pos):
+        """Solve puzzle and return list of moves or None if unsolvable."""
+        return self.solve_bfs(initial_board, initial_empty_pos)
+
+    def solve_bfs(self, initial_board, initial_empty_pos):
         """Solve puzzle using greedy best-first search."""
         start_time = time.time()
         self.nodes_expanded = 0

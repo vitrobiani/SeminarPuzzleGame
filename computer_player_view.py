@@ -45,6 +45,8 @@ class ComputerPlayerView:
         
         # Callbacks (set by controller)
         self.on_new_game: Optional[Callable] = None
+        self.on_solve_game: Optional[Callable] = None
+        self.on_new_game_and_solve: Optional[Callable] = None
         self.on_size_change: Optional[Callable] = None
         self.on_close: Optional[Callable] = None
         
@@ -88,12 +90,24 @@ class ComputerPlayerView:
         button_frame = tk.Frame(control_frame)
         button_frame.pack(pady=5)
         
-        self.new_game_btn = tk.Button(button_frame, text="New Game & Solve", 
+        self.new_game_and_solve_btn = tk.Button(button_frame, text="New Game & Solve",
+                                      command=self._handle_new_game_and_solve,
+                                      font=("Arial", 12), bg="#4CAF50",
+                                      fg="white", padx=10)
+        self.new_game_and_solve_btn.pack(side=tk.LEFT, padx=5)
+
+        self.new_game_btn = tk.Button(button_frame, text="New Game",
                                       command=self._handle_new_game,
-                                      font=("Arial", 12), bg="#4CAF50", 
+                                      font=("Arial", 12), bg="#2196F3",
                                       fg="white", padx=10)
         self.new_game_btn.pack(side=tk.LEFT, padx=5)
-        
+
+        self.solve_game_btn = tk.Button(button_frame, text="Solve Game",
+                                      command=self._handle_solve_game,
+                                      font=("Arial", 12), bg="#FF9800",
+                                      fg="white", padx=10)
+        self.solve_game_btn.pack(side=tk.LEFT, padx=5)
+
         # Speed control frame
         speed_frame = tk.Frame(control_frame)
         speed_frame.pack(pady=5)
@@ -130,7 +144,8 @@ class ComputerPlayerView:
         self.progress_label.pack(pady=2)
 
         # Status label
-        self.status_label = tk.Label(self.root, text="Click 'New Game & Solve' to start",
+        self.status_label = tk.Label(self.root,
+                                     text="Ready! Use 'New Game & Solve' or 'New Game' then 'Solve Game'",
                                      font=("Arial", 11), fg="blue")
         self.status_label.pack(pady=5)
 
@@ -230,14 +245,18 @@ class ComputerPlayerView:
         """
         Set solving state and update UI accordingly.
 
+        Disables all action buttons during solving to prevent interference.
+
         Args:
             solving: Whether currently solving
         """
         self.solving = solving
-        if solving:
-            self.new_game_btn.config(state=tk.DISABLED)
-        else:
-            self.new_game_btn.config(state=tk.NORMAL)
+        state = tk.DISABLED if solving else tk.NORMAL
+
+        # Disable all action buttons during solving
+        self.new_game_and_solve_btn.config(state=state)
+        self.new_game_btn.config(state=state)
+        self.solve_game_btn.config(state=state)
 
     def resize_board(self, new_size: int):
         """
@@ -253,6 +272,16 @@ class ComputerPlayerView:
         """Handle new game button click."""
         if self.on_new_game:
             self.on_new_game()
+
+    def _handle_solve_game(self):
+        """Handle solve game button click."""
+        if self.on_solve_game:
+            self.on_solve_game()
+
+    def _handle_new_game_and_solve(self):
+        """Handle new game and solve button click."""
+        if self.on_new_game_and_solve:
+            self.on_new_game_and_solve()
 
     def _handle_size_change(self):
         """Handle size radio button change."""

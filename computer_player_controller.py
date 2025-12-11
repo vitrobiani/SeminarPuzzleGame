@@ -42,7 +42,8 @@ class ComputerPlayerController:
         """
         self.model = PuzzleModel(size=3)
         self.view = ComputerPlayerView(initial_size=3)
-        self.solver = StrategicSolver(size=3, max_time=120.0)  # Changed from AStarSolver
+        self.max_time = 120.0  # seconds
+        self.solver = StrategicSolver(size=3, max_time=self.max_time)  # Changed from AStarSolver
 
         # Network
         self.host = host
@@ -64,7 +65,9 @@ class ComputerPlayerController:
 
     def _setup_callbacks(self):
         """Set up view callbacks."""
-        self.view.on_new_game = self.start_new_game_and_solve
+        self.view.on_new_game = self.new_game
+        self.view.on_solve_game = self.solve_game
+        self.view.on_new_game_and_solve = self.new_game_and_solve
         self.view.on_size_change = self.handle_size_change
         self.view.on_close = self.handle_close
 
@@ -104,8 +107,13 @@ class ComputerPlayerController:
             except:
                 pass
 
-    def start_new_game_and_solve(self):
-        """Start a new game and solve it automatically."""
+
+    def new_game(self):
+        """
+        Generate a new puzzle without solving.
+
+        Creates a fresh random puzzle board and updates the display.
+        """
         if self.solving_thread and self.solving_thread.is_alive():
             return
 
@@ -113,15 +121,59 @@ class ComputerPlayerController:
         self.model.generate_random_board()
         self.view.update_board(self.model.board)
         self.view.update_move_count(0)
+        self.view.update_status("New game started. Click 'Solve Game' to solve it.", "blue")
+        self.view.update_progress("")
+
+        self._log_to_server(f"Computer: New game started ({self.model.size}x{self.model.size})")
+
+    def solve_game(self):
+        """
+        Solve the current puzzle without generating a new one.
+
+        Checks solvability and uses the strategic solver algorithm.
+        """
+        if self.solving_thread and self.solving_thread.is_alive():
+            return
+
+        # Check solvability
+        if not self.model.is_solvable():
+            self.view.update_status("This puzzle is UNSOLVABLE!", "red")
+            self._log_to_server(f"Computer: Unsolvable puzzle ({self.model.size}x{self.model.size})")
+            return
+
+        self._log_to_server(f"Computer: Starting to solve {self.model.size}x{self.model.size} puzzle")
+
+        # Start solving in separate thread
+        self.stop_solving = False
+        self.solving_thread = threading.Thread(target=self._solve_puzzle_thread)
+        self.solving_thread.daemon = True
+        self.solving_thread.start()
+
+    def new_game_and_solve(self):
+        """
+        Generate a new puzzle and solve it automatically.
+
+        Combines new_game() and solve_game() functionality.
+        Retries if an unsolvable puzzle is generated.
+        """
+        if self.solving_thread and self.solving_thread.is_alive():
+            return
+
+        # Generate new puzzle
+        self.model.generate_random_board()
+        self.view.update_board(self.model.board)
+        self.view.update_move_count(0)
+        self.view.update_progress("")
 
         # Check solvability
         if not self.model.is_solvable():
             self.view.update_status("This puzzle is UNSOLVABLE! Generating a new one...", "red")
             self._log_to_server(f"Computer: Unsolvable puzzle generated ({self.model.size}x{self.model.size})")
-            # Try again
-            self.view.root.after(1000, self.start_new_game_and_solve)
+            # Try again after 1 second
+            self.view.root.after(1000, self.new_game_and_solve)
             return
 
+        # Now solve it
         self._log_to_server(f"Computer: Starting to solve {self.model.size}x{self.model.size} puzzle")
 
         # Start solving in separate thread
@@ -148,7 +200,7 @@ class ComputerPlayerController:
 
         if solution is None:
             # Timeout or no solution
-            self.view.update_status("Could not solve puzzle in time limit (120s). The puzzle may be too complex.", "red")
+            self.view.update_status(f"Could not solve puzzle in time limit ({self.max_time}). The puzzle may be too complex.", "red")
             self.view.update_progress("")
             self._log_to_server(
                 f"Computer: Failed to solve {self.model.size}x{self.model.size} puzzle (timeout)"
@@ -158,7 +210,7 @@ class ComputerPlayerController:
 
         self.view.update_progress(f"Solution found! {len(solution)} moves. Executing...")
         self._log_to_server(
-            f"Computer: Solution found in {solve_time:.2f}s - {len(solution)} moves " +
+            f"Computer: Solution found in {solve_time:.5f}s - {len(solution)} moves " +
             f"(Strategic Algorithm)"
         )
 
@@ -240,7 +292,7 @@ class ComputerPlayerController:
             self.view.resize_board(new_size)
             self.view.update_board(self.model.board)
             self.view.update_move_count(0)
-            self.view.update_status("Board size changed. Click 'New Game & Solve' to start.", "blue")
+            self.view.update_status(f"Board size changed to {new_size}x{new_size}. Ready to start!", "blue")
             self.view.update_progress("")
 
             self._log_to_server(f"Computer: Board size changed to {new_size}x{new_size}")
