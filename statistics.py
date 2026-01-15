@@ -16,10 +16,10 @@ import os
 class GameStats:
     """
     Stores statistics for games of a specific size.
-    
+
     Tracks number of games played, solved, unsolvable, abandoned,
     average time, and average moves.
-    
+
     Attributes:
         size (int): Puzzle dimension
         total_games (int): Total games played
@@ -28,12 +28,13 @@ class GameStats:
         solved_games (int): Games successfully solved
         total_time (float): Cumulative time spent solving
         total_moves (int): Cumulative moves made in solved games
+        games_list (list): List of individual game results (dicts with 'time' and 'moves')
     """
-    
+
     def __init__(self, size: int):
         """
         Initialize game statistics for a puzzle size.
-        
+
         Args:
             size: Puzzle dimension
         """
@@ -44,6 +45,7 @@ class GameStats:
         self.solved_games = 0
         self.total_time = 0.0
         self.total_moves = 0
+        self.games_list = []  # Store individual game results
     
     def add_unsolvable(self):
         """Record an unsolvable game."""
@@ -58,7 +60,7 @@ class GameStats:
     def add_solved(self, time_seconds: float, moves: int):
         """
         Record a solved game.
-        
+
         Args:
             time_seconds: Time taken to solve
             moves: Number of moves made
@@ -67,6 +69,10 @@ class GameStats:
         self.solved_games += 1
         self.total_time += time_seconds
         self.total_moves += moves
+        self.games_list.append({
+            'time': time_seconds,
+            'moves': moves
+        })
     
     def get_average_time(self) -> float:
         """
@@ -110,7 +116,7 @@ class GameStats:
     def from_dict(self, data: Dict):
         """
         Load statistics from dictionary.
-        
+
         Args:
             data: Dictionary containing statistics
         """
@@ -120,6 +126,7 @@ class GameStats:
         self.solved_games = data.get('solved_games', 0)
         self.total_time = data.get('total_time', 0.0)
         self.total_moves = data.get('total_moves', 0)
+        self.games_list = data.get('games_list', [])
 
 
 class StatsTracker:
@@ -203,7 +210,7 @@ class StatsTracker:
     def save_to_file(self, filename: str):
         """
         Save statistics to JSON file.
-        
+
         Args:
             filename: Path to save file
         """
@@ -211,7 +218,7 @@ class StatsTracker:
             'client_id': self.client_id,
             'stats': {}
         }
-        
+
         for size, stats in self.stats.items():
             data['stats'][size] = {
                 'total_games': stats.total_games,
@@ -219,9 +226,10 @@ class StatsTracker:
                 'abandoned_games': stats.abandoned_games,
                 'solved_games': stats.solved_games,
                 'total_time': stats.total_time,
-                'total_moves': stats.total_moves
+                'total_moves': stats.total_moves,
+                'games_list': stats.games_list
             }
-        
+
         with open(filename, 'w') as f:
             json.dump(data, f, indent=2)
     

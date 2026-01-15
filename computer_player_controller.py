@@ -10,6 +10,7 @@ Classes:
 from puzzle_model import PuzzleModel
 from computer_player_view import ComputerPlayerView
 from strategic_solver import StrategicSolver  # Changed from astar_solver
+from statistics import StatsTracker
 from typing import Optional, List, Tuple
 import socket
 import threading
@@ -45,6 +46,10 @@ class ComputerPlayerController:
         self.max_time = 120.0  # seconds
         self.solver = StrategicSolver(size=3, max_time=self.max_time)  # Changed from AStarSolver
 
+        # Statistics
+        self.stats_tracker = StatsTracker(client_id='computer')
+        self.stats_tracker.load_from_file("stats_computer.json")
+
         # Network
         self.host = host
         self.port = port
@@ -53,6 +58,9 @@ class ComputerPlayerController:
         # Threading
         self.solving_thread: Optional[threading.Thread] = None
         self.stop_solving = False
+
+        # Timing
+        self.solve_start_time = 0.0
 
         # Set up view callbacks
         self._setup_callbacks()
@@ -114,6 +122,7 @@ class ComputerPlayerController:
 
         Creates a fresh random puzzle board and updates the display.
         """
+
         if self.solving_thread and self.solving_thread.is_alive():
             return
 
@@ -123,6 +132,12 @@ class ComputerPlayerController:
         self.view.update_move_count(0)
         self.view.update_status("New game started. Click 'Solve Game' to solve it.", "blue")
         self.view.update_progress("")
+
+        # Check solvability
+        if not self.model.is_solvable():
+            self.view.update_status("This puzzle is UNSOLVABLE!", "red")
+            self._log_to_server(f"Computer: Unsolvable puzzle ({self.model.size}x{self.model.size})")
+            return
 
         self._log_to_server(f"Computer: New game started ({self.model.size}x{self.model.size})")
 
@@ -188,7 +203,7 @@ class ComputerPlayerController:
         self.view.update_status("Solving puzzle using A* algorithm...", "orange")
         self.view.update_progress("Computing solution...")
 
-        start_time = time.time()
+        self.solve_start_time = time.time()
 
         # Solve using A*
         solution = self.solver.solve(
@@ -196,7 +211,7 @@ class ComputerPlayerController:
             self.model.empty_pos
         )
 
-        solve_time = time.time() - start_time
+        solve_time = time.time() - self.solve_start_time
 
         if solution is None:
             # Timeout or no solution
@@ -259,16 +274,28 @@ class ComputerPlayerController:
         Args:
             num_moves: Number of moves to solve
         """
+        # Calculate total time (from start of solving to completion)
+        total_time = time.time() - self.solve_start_time
+
         self.view.update_status(
-            f"✓ Puzzle Solved Successfully! {num_moves} moves (Strategic Algorithm)",
+            f"✓ Puzzle Solved Successfully! {num_moves} moves in {total_time:.2f}s (Strategic Algorithm)",
             "green"
         )
         self.view.update_progress("")
 
+        # Record statistics
+        self.stats_tracker.record_solved(
+            self.model.size,
+            total_time,
+            num_moves
+        )
+        self.stats_tracker.save_to_file("stats_computer.json")
+
         self._log_to_server(
             f"Computer: Puzzle solved! " +
             f"Size: {self.model.size}x{self.model.size}, " +
-            f"Moves: {num_moves}"
+            f"Moves: {num_moves}, " +
+            f"Time: {total_time:.2f}s"
         )
 
     def handle_size_change(self, new_size: int):
@@ -303,6 +330,9 @@ class ComputerPlayerController:
         self.stop_solving = True
         if self.solving_thread:
             self.solving_thread.join(timeout=1.0)
+
+        # Save statistics
+        self.stats_tracker.save_to_file("stats_computer.json")
 
         # Disconnect from server
         if self.socket:

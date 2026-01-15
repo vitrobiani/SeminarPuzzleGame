@@ -142,12 +142,6 @@ class HumanPlayerView:
                                   font=("Arial", 12), padx=10)
         self.redo_btn.pack(side=tk.LEFT, padx=5)
 
-        self.report_btn = tk.Button(button_frame, text="Show Report",
-                                    command=self._handle_show_report,
-                                    font=("Arial", 12), bg="#2196F3",
-                                    fg="white", padx=10)
-        self.report_btn.pack(side=tk.LEFT, padx=5)
-
         # Info frame
         info_frame = tk.Frame(self.root)
         info_frame.pack(pady=5)
@@ -348,11 +342,6 @@ class HumanPlayerView:
         """Handle redo button click."""
         if self.on_redo:
             self.on_redo()
-
-    def _handle_show_report(self):
-        """Handle show report button click."""
-        # This will be handled by controller
-        pass
 
     def _on_window_close(self):
         """Handle window close event."""

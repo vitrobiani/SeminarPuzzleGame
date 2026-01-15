@@ -10,7 +10,7 @@ Classes:
 """
 
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, messagebox
 import socket
 import threading
 import subprocess
@@ -19,6 +19,8 @@ import pickle
 from datetime import datetime
 from typing import Optional, Dict
 import os
+import json
+import glob
 
 
 class PuzzleServer:
@@ -105,6 +107,12 @@ class PuzzleServer:
                                       fg="white", padx=20, pady=10)
         self.computer_btn.pack(side=tk.LEFT, padx=10)
 
+        self.stats_btn = tk.Button(button_frame, text="Show Statistics",
+                                   command=self.show_statistics,
+                                   font=("Arial", 12, "bold"), bg="#3498db",
+                                   fg="white", padx=20, pady=10)
+        self.stats_btn.pack(side=tk.LEFT, padx=10)
+
         # Status frame
         status_frame = tk.Frame(self.root, pady=5)
         status_frame.pack()
@@ -144,8 +152,8 @@ class PuzzleServer:
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # Bind to localhost:5000
             self.server_socket.bind(('localhost', 5000))
-            # Listen for up to 5 pending connections
-            self.server_socket.listen(5)
+            # Listen for up to 2 pending connections
+            self.server_socket.listen(2)
 
             self.running = True
             self.log("Server started on localhost:5000")
@@ -309,6 +317,200 @@ class PuzzleServer:
         """Clear the server log."""
         self.log_text.delete(1.0, tk.END)
         self.log("Log cleared")
+
+    def show_statistics(self):
+        """Show combined statistics for all players."""
+        try:
+            # Find all stats files (both human and computer)
+            human_stats_files = glob.glob("stats_client_*.json")
+            computer_stats_file = "stats_computer.json"
+
+            if not human_stats_files and not os.path.exists(computer_stats_file):
+                messagebox.showinfo("Statistics", "No statistics available yet.\nPlay some games to generate statistics!")
+                return
+
+            # Separate human and computer statistics
+            human_stats_by_size = {}
+            computer_stats_by_size = {}
+
+            # Load human player statistics
+            for stats_file in sorted(human_stats_files):
+                try:
+                    with open(stats_file, 'r') as f:
+                        data = json.load(f)
+
+                    stats_data = data.get('stats', {})
+
+                    for size_str, size_stats in stats_data.items():
+                        size = int(size_str)
+
+                        if size not in human_stats_by_size:
+                            human_stats_by_size[size] = {
+                                'solved_games': 0,
+                                'total_time': 0.0,
+                                'total_moves': 0,
+                                'games_list': []
+                            }
+
+                        human_stats_by_size[size]['solved_games'] += size_stats.get('solved_games', 0)
+                        human_stats_by_size[size]['total_time'] += size_stats.get('total_time', 0.0)
+                        human_stats_by_size[size]['total_moves'] += size_stats.get('total_moves', 0)
+                        human_stats_by_size[size]['games_list'].extend(size_stats.get('games_list', []))
+
+                except Exception as e:
+                    self.log(f"Error reading {stats_file}: {e}", "WARNING")
+
+            # Load computer player statistics
+            if os.path.exists(computer_stats_file):
+                try:
+                    with open(computer_stats_file, 'r') as f:
+                        data = json.load(f)
+
+                    stats_data = data.get('stats', {})
+
+                    for size_str, size_stats in stats_data.items():
+                        size = int(size_str)
+
+                        computer_stats_by_size[size] = {
+                            'solved_games': size_stats.get('solved_games', 0),
+                            'total_time': size_stats.get('total_time', 0.0),
+                            'total_moves': size_stats.get('total_moves', 0),
+                            'games_list': size_stats.get('games_list', [])
+                        }
+
+                except Exception as e:
+                    self.log(f"Error reading {computer_stats_file}: {e}", "WARNING")
+
+            # Format report
+            report = self._format_statistics_report(human_stats_by_size, computer_stats_by_size)
+
+            # Display in new window
+            self._show_statistics_window(report)
+
+            self.log("Displayed combined statistics")
+
+        except Exception as e:
+            self.log(f"Error showing statistics: {e}", "ERROR")
+            messagebox.showerror("Error", f"Failed to load statistics:\n{e}")
+
+    def _format_statistics_report(self, human_stats_by_size, computer_stats_by_size):
+        """
+        Format simplified statistics report.
+
+        Args:
+            human_stats_by_size: Human player statistics by puzzle size
+            computer_stats_by_size: Computer player statistics by puzzle size
+
+        Returns:
+            str: Formatted report
+        """
+        report_lines = ["=" * 80]
+        report_lines.append("GAME STATISTICS - ALL PLAYERS")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+
+        # Get all puzzle sizes
+        all_sizes = sorted(set(list(human_stats_by_size.keys()) + list(computer_stats_by_size.keys())))
+
+        if not all_sizes:
+            report_lines.append("No games completed yet.")
+            report_lines.append("=" * 80)
+            return "\n".join(report_lines)
+
+        # Statistics for each board size
+        for size in all_sizes:
+            human_stats = human_stats_by_size.get(size, {'solved_games': 0, 'total_time': 0.0, 'total_moves': 0, 'games_list': []})
+            computer_stats = computer_stats_by_size.get(size, {'solved_games': 0, 'total_time': 0.0, 'total_moves': 0, 'games_list': []})
+
+            # Skip if no games were solved for this size
+            if human_stats['solved_games'] == 0 and computer_stats['solved_games'] == 0:
+                continue
+
+            report_lines.append(f"{size}x{size} PUZZLE")
+            report_lines.append("-" * 80)
+
+            # Human player stats
+            if human_stats['solved_games'] > 0:
+                avg_time = human_stats['total_time'] / human_stats['solved_games']
+                avg_moves = human_stats['total_moves'] / human_stats['solved_games']
+                report_lines.append(f"  Human Players: {human_stats['solved_games']} games won")
+                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
+                report_lines.append("")
+
+                # List individual games
+                for i, game in enumerate(human_stats['games_list'], 1):
+                    report_lines.append(f"    Game {i}: {game['moves']} moves, {game['time']:.2f} seconds")
+            else:
+                report_lines.append(f"  Human Players:    No games won yet")
+
+            report_lines.append("")
+
+            # Computer player stats
+            if computer_stats['solved_games'] > 0:
+                avg_time = computer_stats['total_time'] / computer_stats['solved_games']
+                avg_moves = computer_stats['total_moves'] / computer_stats['solved_games']
+                report_lines.append(f"  Computer Player: {computer_stats['solved_games']} games won")
+                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
+                report_lines.append("")
+
+                # List individual games
+                for i, game in enumerate(computer_stats['games_list'], 1):
+                    report_lines.append(f"    Game {i}: {game['moves']} moves, {game['time']:.2f} seconds")
+            else:
+                report_lines.append(f"  Computer Player:  No games won yet")
+
+            # Overall average (combining both human and computer)
+            total_solved = human_stats['solved_games'] + computer_stats['solved_games']
+            if total_solved > 0:
+                total_time = human_stats['total_time'] + computer_stats['total_time']
+                total_moves = human_stats['total_moves'] + computer_stats['total_moves']
+                overall_avg_time = total_time / total_solved
+                overall_avg_moves = total_moves / total_solved
+
+                report_lines.append("")
+                report_lines.append(f"  Overall Average (Both Players):")
+                report_lines.append(f"    Total Games:    {total_solved}")
+                report_lines.append(f"    Average:        {overall_avg_moves:.2f} moves, {overall_avg_time:.2f} seconds")
+
+            report_lines.append("")
+            report_lines.append("")
+
+        report_lines.append("=" * 80)
+
+        return "\n".join(report_lines)
+
+    def _show_statistics_window(self, report_text):
+        """
+        Display statistics in a new window.
+
+        Args:
+            report_text: Formatted statistics report
+        """
+        stats_window = tk.Toplevel(self.root)
+        stats_window.title("Combined Statistics - All Players")
+        stats_window.geometry("800x700")
+
+        # Add scrollbar
+        scroll = tk.Scrollbar(stats_window)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Add text widget
+        text = tk.Text(stats_window, wrap=tk.WORD,
+                      yscrollcommand=scroll.set, font=("Courier", 10))
+        text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+
+        scroll.config(command=text.yview)
+
+        # Insert report
+        text.insert(tk.END, report_text)
+        text.config(state=tk.DISABLED)
+
+        # Add close button
+        close_btn = tk.Button(stats_window, text="Close",
+                             command=stats_window.destroy,
+                             font=("Arial", 11), bg="#95a5a6",
+                             fg="white", padx=20, pady=5)
+        close_btn.pack(pady=10)
 
     def shutdown(self):
         """Shutdown the server."""

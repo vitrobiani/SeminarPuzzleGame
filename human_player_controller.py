@@ -87,7 +87,6 @@ class HumanPlayerController:
         self.view.on_undo = self.handle_undo
         self.view.on_redo = self.handle_redo
         self.view.on_close = self.handle_close
-        self.view.report_btn.config(command=self.show_report)
 
     def _connect_to_server(self):
         """Connect to the server."""
@@ -280,12 +279,6 @@ class HumanPlayerController:
             # Check if solved after redo
             if self.model.is_solved() and not self.game_finished:
                 self.handle_game_won()
-
-    def show_report(self):
-        """Show statistics report."""
-        report = self.stats_tracker.format_report()
-        self.view.show_report(report)
-        self._log_to_server(f"Client {self.client_id}: Viewed statistics report")
 
     def handle_close(self):
         """Handle window close."""
