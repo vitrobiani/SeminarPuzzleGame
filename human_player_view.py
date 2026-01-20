@@ -117,7 +117,7 @@ class HumanPlayerView:
         tk.Label(size_frame, text="Board Size:").pack(side=tk.LEFT, padx=5)
 
         self.size_var = tk.IntVar(value=self.size)
-        for size in [3, 4, 5, 6, 7]:
+        for size in [3, 4, 5, 6, 7, 8, 9, 10]:
             tk.Radiobutton(size_frame, text=f"{size}x{size}",
                           variable=self.size_var, value=size,
                           command=self._handle_size_change).pack(side=tk.LEFT)

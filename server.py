@@ -66,6 +66,7 @@ class PuzzleServer:
         self.human_client_count = 0
         self.human_client_active = False  # Track if human player is active
         self.computer_client_active = False
+        self.statistics_active = False # Track if statistics window is open
 
         # GUI
         self.root = tk.Tk()
@@ -320,7 +321,11 @@ class PuzzleServer:
 
     def show_statistics(self):
         """Show combined statistics for all players."""
+        if self.statistics_active:
+            self.log("Statistics window already open!", "WARNING")
+            return
         try:
+            self.statistics_active = True
             # Find all stats files (both human and computer)
             human_stats_files = glob.glob("stats_client_*.json")
             computer_stats_file = "stats_computer.json"
@@ -387,7 +392,7 @@ class PuzzleServer:
             # Display in new window
             self._show_statistics_window(report)
 
-            self.log("Displayed combined statistics")
+            self.log("Display statistics")
 
         except Exception as e:
             self.log(f"Error showing statistics: {e}", "ERROR")
@@ -487,12 +492,13 @@ class PuzzleServer:
             report_text: Formatted statistics report
         """
         stats_window = tk.Toplevel(self.root)
-        stats_window.title("Combined Statistics - All Players")
+        stats_window.title("Statistics - All Players")
         stats_window.geometry("800x700")
 
         # Add scrollbar
         scroll = tk.Scrollbar(stats_window)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        stats_window.protocol("WM_DELETE_WINDOW", lambda: [stats_window.destroy(), self._close_statistics_window()])
 
         # Add text widget
         text = tk.Text(stats_window, wrap=tk.WORD,
@@ -507,10 +513,14 @@ class PuzzleServer:
 
         # Add close button
         close_btn = tk.Button(stats_window, text="Close",
-                             command=stats_window.destroy,
+                             command=lambda: [stats_window.destroy(), self._close_statistics_window()],
                              font=("Arial", 11), bg="#95a5a6",
                              fg="white", padx=20, pady=5)
         close_btn.pack(pady=10)
+
+    def _close_statistics_window(self):
+        """Callback when statistics window is closed."""
+        self.statistics_active = False
 
     def shutdown(self):
         """Shutdown the server."""

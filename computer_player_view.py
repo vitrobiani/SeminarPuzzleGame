@@ -10,7 +10,7 @@ Classes:
 """
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from typing import Optional, Callable, Dict
 import time
 
@@ -48,6 +48,7 @@ class ComputerPlayerView:
         self.on_solve_game: Optional[Callable] = None
         self.on_new_game_and_solve: Optional[Callable] = None
         self.on_size_change: Optional[Callable] = None
+        self.on_algorithm_change: Optional[Callable] = None
         self.on_close: Optional[Callable] = None
         
         # UI elements
@@ -71,9 +72,26 @@ class ComputerPlayerView:
         control_frame.pack()
         
         # Title
-        tk.Label(control_frame, text="Computer Player (A* Solver)", 
+        tk.Label(control_frame, text="Computer Player (AI Solver)",
                 font=("Arial", 14, "bold")).pack()
-        
+
+        # Algorithm selection
+        algo_frame = tk.Frame(control_frame)
+        algo_frame.pack(pady=5)
+
+        tk.Label(algo_frame, text="Algorithm:", font=("Arial", 10)).pack(side=tk.LEFT, padx=5)
+
+        self.algorithm_var = tk.StringVar(value="Human")
+        self.algorithm_dropdown = ttk.Combobox(
+            algo_frame,
+            textvariable=self.algorithm_var,
+            values=["BFS", "Human"],
+            state="readonly",
+            width=10
+        )
+        self.algorithm_dropdown.pack(side=tk.LEFT, padx=5)
+        self.algorithm_dropdown.bind("<<ComboboxSelected>>", self._handle_algorithm_change)
+
         # Size selection
         size_frame = tk.Frame(control_frame)
         size_frame.pack(pady=5)
@@ -81,7 +99,7 @@ class ComputerPlayerView:
         tk.Label(size_frame, text="Board Size:").pack(side=tk.LEFT, padx=5)
         
         self.size_var = tk.IntVar(value=self.size)
-        for size in [3, 4, 5, 6, 7]:
+        for size in [3, 4, 5, 6, 7, 8, 9, 10]:
             tk.Radiobutton(size_frame, text=f"{size}x{size}", 
                           variable=self.size_var, value=size,
                           command=self._handle_size_change).pack(side=tk.LEFT)
@@ -191,7 +209,7 @@ class ComputerPlayerView:
                 if value == 0:
                     btn.config(text="", bg="#34495e")
                 else:
-                    btn.config(text=str(value), bg="#e74c3c", fg="white")
+                    btn.config(text=str(value), bg="#e74c3c", disabledforeground="white")
 
     def update_move_count(self, moves: int):
         """
@@ -252,11 +270,13 @@ class ComputerPlayerView:
         """
         self.solving = solving
         state = tk.DISABLED if solving else tk.NORMAL
+        combo_state = "disabled" if solving else "readonly"
 
-        # Disable all action buttons during solving
+        # Disable all action buttons and dropdowns during solving
         self.new_game_and_solve_btn.config(state=state)
         self.new_game_btn.config(state=state)
         self.solve_game_btn.config(state=state)
+        self.algorithm_dropdown.config(state=combo_state)
 
     def resize_board(self, new_size: int):
         """
@@ -288,6 +308,21 @@ class ComputerPlayerView:
         new_size = self.size_var.get()
         if self.on_size_change:
             self.on_size_change(new_size)
+
+    def _handle_algorithm_change(self, event=None):
+        """Handle algorithm dropdown change."""
+        algorithm = self.algorithm_var.get()
+        if self.on_algorithm_change:
+            self.on_algorithm_change(algorithm)
+
+    def get_selected_algorithm(self) -> str:
+        """
+        Get the currently selected algorithm.
+
+        Returns:
+            str: "BFS" or "Human"
+        """
+        return self.algorithm_var.get()
 
     def _on_speed_change(self, value):
         """Handle speed slider change."""

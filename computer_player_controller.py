@@ -9,7 +9,7 @@ Classes:
 
 from puzzle_model import PuzzleModel
 from computer_player_view import ComputerPlayerView
-from strategic_solver import StrategicSolver  # Changed from astar_solver
+from strategic_solver import StrategicSolver, Solvers  # Changed from astar_solver
 from statistics import StatsTracker
 from typing import Optional, List, Tuple
 import socket
@@ -44,7 +44,8 @@ class ComputerPlayerController:
         self.model = PuzzleModel(size=3)
         self.view = ComputerPlayerView(initial_size=3)
         self.max_time = 120.0  # seconds
-        self.solver = StrategicSolver(size=3, max_time=self.max_time)  # Changed from AStarSolver
+        self.current_algorithm = Solvers.HUMAN  # Default to Human algorithm
+        self.solver = StrategicSolver(size=3, max_time=self.max_time, solver_name=self.current_algorithm)
 
         # Statistics
         self.stats_tracker = StatsTracker(client_id='computer')
@@ -77,6 +78,7 @@ class ComputerPlayerController:
         self.view.on_solve_game = self.solve_game
         self.view.on_new_game_and_solve = self.new_game_and_solve
         self.view.on_size_change = self.handle_size_change
+        self.view.on_algorithm_change = self.handle_algorithm_change
         self.view.on_close = self.handle_close
 
     def _connect_to_server(self):
@@ -200,7 +202,8 @@ class ComputerPlayerController:
     def _solve_puzzle_thread(self):
         """Solve puzzle in separate thread."""
         self.view.set_solving(True)
-        self.view.update_status("Solving puzzle using A* algorithm...", "orange")
+        algo_name = self.current_algorithm.value
+        self.view.update_status(f"Solving puzzle using {algo_name} algorithm...", "orange")
         self.view.update_progress("Computing solution...")
 
         self.solve_start_time = time.time()
@@ -226,7 +229,7 @@ class ComputerPlayerController:
         self.view.update_progress(f"Solution found! {len(solution)} moves. Executing...")
         self._log_to_server(
             f"Computer: Solution found in {solve_time:.5f}s - {len(solution)} moves " +
-            f"(Strategic Algorithm)"
+            f"({algo_name} Algorithm)"
         )
 
         # Execute solution moves with animation
@@ -276,9 +279,10 @@ class ComputerPlayerController:
         """
         # Calculate total time (from start of solving to completion)
         total_time = time.time() - self.solve_start_time
+        algo_name = self.current_algorithm.value
 
         self.view.update_status(
-            f"✓ Puzzle Solved Successfully! {num_moves} moves in {total_time:.2f}s (Strategic Algorithm)",
+            f"Puzzle Solved! {num_moves} moves in {total_time:.2f}s ({algo_name} Algorithm)",
             "green"
         )
         self.view.update_progress("")
@@ -313,7 +317,7 @@ class ComputerPlayerController:
 
             # Update model and solver
             self.model.resize(new_size)
-            self.solver = StrategicSolver(size=new_size, max_time=120.0)  # Changed from AStarSolver
+            self.solver = StrategicSolver(size=new_size, max_time=self.max_time, solver_name=self.current_algorithm)
 
             # Update view
             self.view.resize_board(new_size)
@@ -323,6 +327,29 @@ class ComputerPlayerController:
             self.view.update_progress("")
 
             self._log_to_server(f"Computer: Board size changed to {new_size}x{new_size}")
+
+    def handle_algorithm_change(self, algorithm: str):
+        """
+        Handle algorithm selection change.
+
+        Args:
+            algorithm: Selected algorithm ("BFS" or "Human")
+        """
+        # Convert string to enum
+        if algorithm == "BFS":
+            self.current_algorithm = Solvers.BFS
+        else:
+            self.current_algorithm = Solvers.HUMAN
+
+        # Update solver with new algorithm
+        self.solver = StrategicSolver(
+            size=self.model.size,
+            max_time=self.max_time,
+            solver_name=self.current_algorithm
+        )
+
+        self.view.update_status(f"Algorithm changed to {algorithm}. Ready to solve!", "blue")
+        self._log_to_server(f"Computer: Algorithm changed to {algorithm}")
 
     def handle_close(self):
         """Handle window close."""
