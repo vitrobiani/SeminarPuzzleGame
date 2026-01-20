@@ -132,12 +132,12 @@ class ComputerPlayerView:
 
         tk.Label(speed_frame, text="Animation Speed:", font=("Arial", 10)).pack(side=tk.LEFT, padx=5)
 
-        # Speed slider (0.1x to 10x speed)
+        # Speed slider (0.1x to 20x speed)
         self.speed_var = tk.DoubleVar(value=1.0)
         self.speed_slider = tk.Scale(
             speed_frame,
             from_=0.1,
-            to=10.0,
+            to=20.0,
             resolution=0.1,
             orient=tk.HORIZONTAL,
             variable=self.speed_var,
@@ -182,16 +182,37 @@ class ComputerPlayerView:
         self.tile_buttons.clear()
 
         # Calculate button size based on board size
-        button_size = max(60, 300 // self.size)
+        # Smaller buttons for larger boards to fit on screen
+        if self.size <= 4:
+            button_size = 70
+            font_size = 18
+        elif self.size <= 5:
+            button_size = 60
+            font_size = 14
+        elif self.size <= 6:
+            button_size = 50
+            font_size = 14
+        elif self.size <= 7:
+            button_size = 50
+            font_size = 14
+        elif self.size <= 8:
+            button_size = 50
+            font_size = 12
+        elif self.size <= 9:
+            button_size = 45
+            font_size = 11
+        else:  # 10x10
+            button_size = 40
+            font_size = 10
 
         for row in range(self.size):
             for col in range(self.size):
                 btn = tk.Button(self.board_frame, text="",
                                width=button_size // 10,
                                height=button_size // 20,
-                               font=("Arial", max(12, 24 - self.size * 2), "bold"),
+                               font=("Arial", font_size, "bold"),
                                state=tk.DISABLED)
-                btn.grid(row=row, column=col, padx=2, pady=2)
+                btn.grid(row=row, column=col, padx=1, pady=1)
                 self.tile_buttons[(row, col)] = btn
 
     def update_board(self, board):
