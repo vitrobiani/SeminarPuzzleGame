@@ -157,6 +157,11 @@ class ComputerPlayerView:
                                    font=("Arial", 12))
         self.move_label.pack(pady=2)
 
+        # Timer label for showing calculation time
+        self.timer_label = tk.Label(info_frame, text="",
+                                    font=("Arial", 12, "bold"))
+        self.timer_label.pack(pady=2)
+
         self.progress_label = tk.Label(info_frame, text="",
                                        font=("Arial", 11))
         self.progress_label.pack(pady=2)
@@ -259,6 +264,23 @@ class ComputerPlayerView:
             message: Progress message
         """
         self.progress_label.config(text=message)
+
+    def update_timer(self, elapsed: float, timeout: float):
+        """
+        Update the calculation timer display.
+
+        Args:
+            elapsed: Elapsed time in seconds
+            timeout: Maximum allowed time in seconds
+        """
+        self.timer_label.config(
+            text=f"Calculating: {elapsed:.1f}s / {timeout:.1f}s",
+            fg="orange"
+        )
+
+    def clear_timer(self):
+        """Clear the timer display."""
+        self.timer_label.config(text="")
 
     def show_message(self, title: str, message: str):
         """

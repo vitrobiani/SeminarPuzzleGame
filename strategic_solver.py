@@ -750,7 +750,7 @@ class StrategicSolver:
         return goal
 
     #########################################################
-    # BFS (kept from original)
+    # BFS
     #########################################################
     def solve_bfs(self, initial_board, initial_empty_pos):
         """Solve puzzle using greedy best-first search."""

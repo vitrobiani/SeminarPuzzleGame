@@ -62,6 +62,7 @@ class ComputerPlayerController:
 
         # Timing
         self.solve_start_time = 0.0
+        self.timer_running = False
 
         # Set up view callbacks
         self._setup_callbacks()
@@ -199,6 +200,14 @@ class ComputerPlayerController:
         self.solving_thread.daemon = True
         self.solving_thread.start()
 
+    def _update_timer(self):
+        """Update the timer display during solving."""
+        if self.timer_running:
+            elapsed = time.time() - self.solve_start_time
+            self.view.update_timer(elapsed, self.max_time)
+            # Schedule next update in 100ms
+            self.view.root.after(100, self._update_timer)
+
     def _solve_puzzle_thread(self):
         """Solve puzzle in separate thread."""
         self.view.set_solving(True)
@@ -208,11 +217,19 @@ class ComputerPlayerController:
 
         self.solve_start_time = time.time()
 
+        # Start timer updates
+        self.timer_running = True
+        self.view.root.after(0, self._update_timer)
+
         # Solve using A*
         solution = self.solver.solve(
             self.model.get_board_copy(),
             self.model.empty_pos
         )
+
+        # Stop timer updates
+        self.timer_running = False
+        self.view.root.after(0, self.view.clear_timer)
 
         solve_time = time.time() - self.solve_start_time
 

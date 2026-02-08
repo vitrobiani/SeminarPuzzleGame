@@ -332,6 +332,7 @@ class PuzzleServer:
 
             if not human_stats_files and not os.path.exists(computer_stats_file):
                 messagebox.showinfo("Statistics", "No statistics available yet.\nPlay some games to generate statistics!")
+                self.statistics_active = False
                 return
 
             # Separate human and computer statistics
@@ -397,6 +398,7 @@ class PuzzleServer:
         except Exception as e:
             self.log(f"Error showing statistics: {e}", "ERROR")
             messagebox.showerror("Error", f"Failed to load statistics:\n{e}")
+            self.statistics_active = False
 
     def _format_statistics_report(self, human_stats_by_size, computer_stats_by_size):
         """
@@ -439,12 +441,13 @@ class PuzzleServer:
                 avg_time = human_stats['total_time'] / human_stats['solved_games']
                 avg_moves = human_stats['total_moves'] / human_stats['solved_games']
                 report_lines.append(f"  Human Players: {human_stats['solved_games']} games won")
-                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
-                report_lines.append("")
 
                 # List individual games
                 for i, game in enumerate(human_stats['games_list'], 1):
                     report_lines.append(f"    Game {i}: {game['moves']} moves, {game['time']:.2f} seconds")
+
+                report_lines.append("")
+                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
             else:
                 report_lines.append(f"  Human Players:    No games won yet")
 
@@ -455,12 +458,13 @@ class PuzzleServer:
                 avg_time = computer_stats['total_time'] / computer_stats['solved_games']
                 avg_moves = computer_stats['total_moves'] / computer_stats['solved_games']
                 report_lines.append(f"  Computer Player: {computer_stats['solved_games']} games won")
-                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
-                report_lines.append("")
 
                 # List individual games
                 for i, game in enumerate(computer_stats['games_list'], 1):
                     report_lines.append(f"    Game {i}: {game['moves']} moves, {game['time']:.2f} seconds")
+
+                report_lines.append("")
+                report_lines.append(f"    Average: {avg_moves:.2f} moves, {avg_time:.2f} seconds")
             else:
                 report_lines.append(f"  Computer Player:  No games won yet")
 
@@ -511,12 +515,100 @@ class PuzzleServer:
         text.insert(tk.END, report_text)
         text.config(state=tk.DISABLED)
 
+        # Button frame for refresh and close buttons
+        button_frame = tk.Frame(stats_window)
+        button_frame.pack(pady=10)
+
+        # Add refresh button
+        refresh_btn = tk.Button(button_frame, text="Refresh",
+                               command=lambda: self._refresh_statistics(text),
+                               font=("Arial", 11), bg="#27ae60",
+                               fg="white", padx=20, pady=5)
+        refresh_btn.pack(side=tk.LEFT, padx=10)
+
         # Add close button
-        close_btn = tk.Button(stats_window, text="Close",
+        close_btn = tk.Button(button_frame, text="Close",
                              command=lambda: [stats_window.destroy(), self._close_statistics_window()],
                              font=("Arial", 11), bg="#95a5a6",
                              fg="white", padx=20, pady=5)
-        close_btn.pack(pady=10)
+        close_btn.pack(side=tk.LEFT, padx=10)
+
+    def _refresh_statistics(self, text_widget):
+        """
+        Refresh the statistics display with latest data.
+
+        Args:
+            text_widget: The text widget to update
+        """
+        try:
+            # Reload statistics from files
+            human_stats_files = glob.glob("stats_client_*.json")
+            computer_stats_file = "stats_computer.json"
+
+            human_stats_by_size = {}
+            computer_stats_by_size = {}
+
+            # Load human player statistics
+            for stats_file in sorted(human_stats_files):
+                try:
+                    with open(stats_file, 'r') as f:
+                        data = json.load(f)
+
+                    stats_data = data.get('stats', {})
+
+                    for size_str, size_stats in stats_data.items():
+                        size = int(size_str)
+
+                        if size not in human_stats_by_size:
+                            human_stats_by_size[size] = {
+                                'solved_games': 0,
+                                'total_time': 0.0,
+                                'total_moves': 0,
+                                'games_list': []
+                            }
+
+                        human_stats_by_size[size]['solved_games'] += size_stats.get('solved_games', 0)
+                        human_stats_by_size[size]['total_time'] += size_stats.get('total_time', 0.0)
+                        human_stats_by_size[size]['total_moves'] += size_stats.get('total_moves', 0)
+                        human_stats_by_size[size]['games_list'].extend(size_stats.get('games_list', []))
+
+                except Exception as e:
+                    self.log(f"Error reading {stats_file}: {e}", "WARNING")
+
+            # Load computer player statistics
+            if os.path.exists(computer_stats_file):
+                try:
+                    with open(computer_stats_file, 'r') as f:
+                        data = json.load(f)
+
+                    stats_data = data.get('stats', {})
+
+                    for size_str, size_stats in stats_data.items():
+                        size = int(size_str)
+
+                        computer_stats_by_size[size] = {
+                            'solved_games': size_stats.get('solved_games', 0),
+                            'total_time': size_stats.get('total_time', 0.0),
+                            'total_moves': size_stats.get('total_moves', 0),
+                            'games_list': size_stats.get('games_list', [])
+                        }
+
+                except Exception as e:
+                    self.log(f"Error reading {computer_stats_file}: {e}", "WARNING")
+
+            # Format the new report
+            report = self._format_statistics_report(human_stats_by_size, computer_stats_by_size)
+
+            # Update the text widget
+            text_widget.config(state=tk.NORMAL)
+            text_widget.delete(1.0, tk.END)
+            text_widget.insert(tk.END, report)
+            text_widget.config(state=tk.DISABLED)
+
+            self.log("Statistics refreshed")
+
+        except Exception as e:
+            self.log(f"Error refreshing statistics: {e}", "ERROR")
 
     def _close_statistics_window(self):
         """Callback when statistics window is closed."""
