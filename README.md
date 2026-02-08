@@ -5,7 +5,7 @@ A comprehensive sliding puzzle game system implementing client-server architectu
 
 ---
 
-## 📋 Project Overview
+## Project Overview
 
 This system implements a complete sliding puzzle game (N-puzzle) with the following features:
 - **Client-Server Architecture**: Multiple clients connecting to a central server
@@ -17,21 +17,11 @@ This system implements a complete sliding puzzle game (N-puzzle) with the follow
 
 ---
 
-## 🎯 Features
-
-### Core Functionality
-- ✅ Support for 4 board sizes: 3×3, 4×4, 5×5, 6×6
-- ✅ Automatic solvability checking using inversion counting
-- ✅ Undo/Redo functionality (Memento pattern)
-- ✅ Real-time move and time tracking
-- ✅ Statistics and reporting per client
-- ✅ Server logging of all activities
-
 ### Human Player Client
 - Interactive tile clicking interface
 - Dynamic board resizing during gameplay
 - Undo/Redo support for unlimited moves
-- Real-time timer and move counter
+- timer and move counter
 - Statistics report showing:
   - Total games played per size
   - Unsolvable puzzles encountered
@@ -41,12 +31,11 @@ This system implements a complete sliding puzzle game (N-puzzle) with the follow
   - Average number of moves
 
 ### Computer Player Client
-- Automatic puzzle solving using A* algorithm
+- Automatic puzzle solving using a BFS algorithm or "Human like" algorithm
 - Manhattan distance heuristic for optimal pathfinding
 - Visual animation of solution execution
 - 120-second timeout protection
 - Node expansion statistics
-- Only one computer player can run at a time (Singleton)
 
 ### Server
 - Central management console with GUI
@@ -54,10 +43,11 @@ This system implements a complete sliding puzzle game (N-puzzle) with the follow
 - Real-time activity logging
 - Client connection monitoring
 - Thread-safe client handling
+- Statistics page showing overall performance
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Design Patterns Implemented
 
@@ -83,36 +73,11 @@ This system implements a complete sliding puzzle game (N-puzzle) with the follow
 
 ---
 
-## 📁 Project Structure
-
-```
-sliding_puzzle_project/
-│
-├── server.py                      # Main server with GUI (Singleton)
-├── human_client.py                # Human player launcher
-├── computer_client.py             # Computer player launcher
-│
-├── puzzle_model.py                # Core puzzle logic (Model)
-├── human_player_view.py           # Human player GUI (View)
-├── computer_player_view.py        # Computer player GUI (View)
-├── human_player_controller.py     # Human player logic (Controller)
-├── computer_player_controller.py  # Computer player logic (Controller)
-│
-├── astar_solver.py                # A* algorithm implementation
-├── memento.py                     # Memento pattern for undo/redo
-├── statistics.py                  # Statistics tracking and reporting
-│
-└── README.md                      # This file
-```
-
----
-
-## 🚀 How to Run
+## How to Run
 
 ### Prerequisites
 - Python 3.10.x or higher
-- tkinter (usually included with Python)
-- No external dependencies required!
+- tkinter 
 
 ### Starting the System
 
@@ -130,7 +95,7 @@ sliding_puzzle_project/
 ### Playing the Game
 
 #### Human Player:
-1. Select board size (3×3, 4×4, 5×5, or 6×6)
+1. Select board size (3×3 - 10×10)
 2. Click "New Game" to generate a puzzle
 3. Click on tiles adjacent to the empty space to move them
 4. Use "Undo" and "Redo" to navigate move history
@@ -146,31 +111,7 @@ sliding_puzzle_project/
 
 ---
 
-## 🧮 Algorithm Details
-
-### Solvability Checking
-The system uses inversion counting to determine if a puzzle configuration is solvable:
-
-**For odd-sized boards (3×3, 5×5):**
-- Puzzle is solvable if the number of inversions is even
-
-**For even-sized boards (4×4, 6×6):**
-- Puzzle is solvable if (inversions + empty_row_from_bottom) is odd
-
-An **inversion** is when a larger number appears before a smaller number when reading the board left-to-right, top-to-bottom (excluding the empty tile).
-
-### A* Algorithm
-The computer player uses A* pathfinding with:
-- **Heuristic**: Manhattan distance (sum of distances of each tile from its goal position)
-- **Cost Function**: f(n) = g(n) + h(n)
-  - g(n): moves made so far
-  - h(n): Manhattan distance to goal
-- **Timeout**: 120 seconds maximum
-- **Optimization**: Closed set to avoid revisiting states
-
----
-
-## 📊 Statistics and Reporting
+## Statistics and Reporting
 
 Each human player client maintains statistics including:
 - Total games played per board size
@@ -181,13 +122,13 @@ Each human player client maintains statistics including:
 - Average number of moves
 
 Statistics are:
-- Saved automatically to JSON files (`stats_client_N.json`)
+- Saved automatically to JSON files 
 - Persistent across sessions
 - Viewable via "Show Report" button
 
 ---
 
-## 🔧 Technical Implementation
+## Technical Implementation
 
 ### Threading
 - Server accepts connections in a separate thread
@@ -209,63 +150,7 @@ Statistics are:
 
 ---
 
-## 🎓 Learning Objectives Achieved
-
-1. **Algorithm Implementation**:
-   - Inversion counting for solvability
-   - A* pathfinding with heuristics
-   - Manhattan distance calculation
-
-2. **Design Patterns**:
-   - MVC architecture separation
-   - Singleton for single-instance components
-   - Memento for state management
-
-3. **Network Programming**:
-   - Client-server architecture
-   - Socket programming
-   - Thread management
-   - Data serialization
-
-4. **GUI Development**:
-   - tkinter interface design
-   - Event-driven programming
-   - Responsive layouts
-
-5. **Software Engineering**:
-   - Modular code organization
-   - Comprehensive documentation
-   - Error handling
-   - State management
-
----
-
-## 📝 Python Documentation Standards
-
-All code follows Python documentation standards (PEP 257):
-- Module docstrings explaining purpose
-- Class docstrings with attributes
-- Function/method docstrings with Args, Returns, Raises
-- Inline comments for complex logic
-- Type hints for better code clarity
-
-Example:
-```python
-def move(self, tile_pos: Tuple[int, int]) -> bool:
-    """
-    Move a tile into the empty space.
-    
-    Args:
-        tile_pos: Position (row, col) of the tile to move
-        
-    Returns:
-        bool: True if move was valid and executed, False otherwise
-    """
-```
-
----
-
-## 🐛 Error Handling
+## Error Handling
 
 The system handles:
 - ✅ Unsolvable puzzle configurations (detected and reported)
@@ -274,48 +159,6 @@ The system handles:
 - ✅ Solver timeouts (120-second limit)
 - ✅ Invalid moves (ignored with no errors)
 - ✅ Window close events (statistics saved)
-
----
-
-## 💡 Usage Tips
-
-1. **For Testing Solvability**: The system generates truly random puzzles, so you'll occasionally see unsolvable configurations - this is expected!
-
-2. **For Best Computer Performance**: Smaller boards (3×3, 4×4) solve quickly. Larger boards may take longer or timeout.
-
-3. **Statistics Persistence**: Your statistics are saved automatically. Even if you close and reopen a client with the same ID, stats will be preserved.
-
-4. **Server Log**: Keep an eye on the server log to see all system activities in real-time.
-
-5. **Multiple Human Players**: You can launch multiple human player clients - each gets its own ID and maintains separate statistics.
-
----
-
-## 🔮 Future Enhancements (Optional)
-
-Potential improvements that could be added:
-- Different heuristics (Linear Conflict, Pattern Database)
-- Difficulty selection (guaranteed solvability)
-- Leaderboards across all clients
-- Save/Load game state
-- Customizable themes
-- Sound effects
-- Network play across different computers
-
----
-
-## 👥 Development
-
-**Project Type**: Programming Languages Seminar  
-**Language**: Python 3.10.x  
-**IDE**: PyCharm Community Edition  
-**Pattern**: Client-Server with Threads  
-
----
-
-## 📄 License
-
-This project is created for educational purposes as part of a university seminar course.
 
 ---
 
@@ -331,27 +174,9 @@ This project is created for educational purposes as part of a university seminar
 - [x] Full GUI (no console I/O)
 - [x] Server launches clients via GUI
 - [x] A* algorithm for computer player
+- [x] Human-like algorithm for computer player
 - [x] 120-second timeout for solver
 - [x] Statistics tracking and reporting
 - [x] Server logging
 - [x] Comprehensive Python documentation
 - [x] Single .py file execution (server.py only)
-
----
-
-## 🎉 Success Criteria Met
-
-✓ The entire system runs from a single `server.py` execution  
-✓ All clients are launched from the server GUI  
-✓ No console input/output required (except debug prints)  
-✓ All three design patterns properly implemented  
-✓ Full GUI interface for all interactions  
-✓ Complete statistics and reporting  
-✓ Proper solvability detection  
-✓ Working A* solver with heuristic  
-✓ Thread-safe client-server communication  
-✓ Comprehensive documentation following Python standards  
-
----
-
-**Good Luck with Your Demonstration! 🚀**
